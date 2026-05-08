@@ -95,13 +95,22 @@ export class ListsService {
         weight: item.weight,
       })),
     });
-    const safe = doc.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() || 'list';
+    const safe = this.sanitizeFilename(doc.name);
     return { filename: `${safe}.json`, payload };
   }
 
   async remove(id: string): Promise<void> {
     const result = await this.model.findByIdAndDelete(id).lean();
     if (!result) throw new NotFoundException(`List ${id} not found.`);
+  }
+
+  private sanitizeFilename(name: string): string {
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    return slug || 'list';
   }
 
   private assertValid(

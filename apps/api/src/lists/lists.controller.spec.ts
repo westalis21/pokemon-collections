@@ -173,6 +173,27 @@ describe('ListsController (e2e)', () => {
     });
   });
 
+  it('truncates and slugs the download filename for very long names', async () => {
+    const longName = 'A'.repeat(80);
+    const created = await request(app.getHttpServer())
+      .post('/api/lists')
+      .send({ name: longName, pokemonIds: [1, 4, 7] })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/lists/${created.body._id}/download`)
+      .expect(200);
+
+    const disposition = response.headers['content-disposition'] as string;
+    const match = disposition.match(/filename="([^"]+)"/);
+    expect(match).not.toBeNull();
+    const filename = match![1];
+    expect(filename.endsWith('.json')).toBe(true);
+    const stem = filename.slice(0, -'.json'.length);
+    expect(stem.length).toBeLessThanOrEqual(40);
+    expect(stem).toMatch(/^[a-z0-9_-]+$/);
+  });
+
   it('imports a v1 file', async () => {
     const file = JSON.stringify({
       schemaVersion: 1,
@@ -216,6 +237,19 @@ describe('ListsController (e2e)', () => {
       .expect(400);
 
     expect(response.body.errors[0].code).toBe('UNSUPPORTED_FILE_VERSION');
+  });
+
+  it('rejects an oversized upload with INVALID_FILE_FORMAT', async () => {
+    const big = Buffer.alloc(300 * 1024, 'a');
+    const response = await request(app.getHttpServer())
+      .post('/api/lists/upload')
+      .attach('file', big, 'big.json')
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      statusCode: 400,
+      errors: [{ code: 'INVALID_FILE_FORMAT', message: 'File too large.' }],
+    });
   });
 
   it('rejects a file that fails domain validation', async () => {

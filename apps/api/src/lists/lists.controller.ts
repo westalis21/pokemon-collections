@@ -9,6 +9,7 @@ import {
   Post,
   Res,
   UploadedFile,
+  UseFilters,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -18,6 +19,7 @@ import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { FormatException } from '../common/exceptions/format.exception';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
+import { UploadErrorFilter } from '../common/filters/upload-error.filter';
 
 @Controller('lists')
 export class ListsController {
@@ -29,7 +31,10 @@ export class ListsController {
   }
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseFilters(UploadErrorFilter)
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 256 * 1024 } }),
+  )
   async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new FormatException({
