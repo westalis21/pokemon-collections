@@ -1,11 +1,15 @@
 /**
  * Custom Vitest environment: extends jsdom but restores node-native
- * FormData / File / Blob after jsdom overwrites them.
+ * FormData / File / Blob / AbortController / AbortSignal after jsdom overwrites them.
  *
  * jsdom replaces these globals with its own implementations. When tests use
  * MSW's node interceptor, the interceptor creates a native node `Request`
  * whose constructor only recognises the undici (node-native) `FormData` as a
  * multipart body. jsdom's FormData serialises as `text/plain` instead.
+ *
+ * The same cross-realm mismatch affects AbortSignal: React Router's data
+ * router creates a `Request` with an AbortSignal and passes it to undici,
+ * which rejects jsdom's AbortSignal as a foreign-realm object.
  *
  * We capture the native constructors before the jsdom environment sets up and
  * restore them immediately after, so all tests see the proper Web API types
@@ -21,6 +25,8 @@ const jsdomEnv = builtinEnvironments.jsdom;
 const NativeFormData = globalThis.FormData;
 const NativeFile = globalThis.File;
 const NativeBlob = globalThis.Blob;
+const NativeAbortController = globalThis.AbortController;
+const NativeAbortSignal = globalThis.AbortSignal;
 
 export default {
   ...jsdomEnv,
@@ -48,6 +54,22 @@ export default {
     if (NativeBlob) {
       Object.defineProperty(global, 'Blob', {
         value: NativeBlob,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
+    if (NativeAbortController) {
+      Object.defineProperty(global, 'AbortController', {
+        value: NativeAbortController,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
+    if (NativeAbortSignal) {
+      Object.defineProperty(global, 'AbortSignal', {
+        value: NativeAbortSignal,
         writable: true,
         configurable: true,
         enumerable: true,
