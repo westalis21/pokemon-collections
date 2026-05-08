@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PokemonCache } from './schemas/pokemon-cache.schema';
@@ -19,6 +19,8 @@ export interface SearchResult {
 
 @Injectable()
 export class PokemonCacheService {
+  private readonly logger = new Logger(PokemonCacheService.name);
+
   constructor(
     @InjectModel(PokemonCache.name)
     private readonly model: Model<PokemonCache>,
@@ -27,7 +29,12 @@ export class PokemonCacheService {
 
   async search(input: SearchInput): Promise<SearchResult> {
     const filter = input.search
-      ? { name: { $regex: input.search, $options: 'i' } }
+      ? {
+          name: {
+            $regex: this.escapeRegex(input.search),
+            $options: 'i',
+          },
+        }
       : {};
     const skip = (input.page - 1) * input.limit;
 
@@ -44,13 +51,11 @@ export class PokemonCacheService {
     return { items: items as PokemonCache[], total, page: input.page, limit: input.limit };
   }
 
-  async getOneByIdOrName(
-    idOrName: number | string,
-  ): Promise<PokemonCache & { weight: number; sprite: string; types: string[] }> {
+  async getOneByIdOrName(idOrName: number | string): Promise<PokeDetail> {
     const filter =
       typeof idOrName === 'number'
         ? { id: idOrName }
-        : isFinite(Number(idOrName))
+        : /^\d+$/.test(idOrName)
           ? { id: Number(idOrName) }
           : { name: idOrName };
 
@@ -59,11 +64,33 @@ export class PokemonCacheService {
       | null;
 
     if (cached && this.isFullyPopulated(cached)) {
-      return cached as PokemonCache & {
-        weight: number;
-        sprite: string;
-        types: string[];
+      return {
+        id: cached.id,
+        name: cached.name,
+        weight: cached.weight as number,
+        sprite: cached.sprite as string,
+        types: cached.types ?? [],
       };
+    }
+
+    if (cached) {
+      // Stub hit: return immediately and fill in the detail in the background.
+      const stub: PokeDetail = {
+        id: cached.id,
+        name: cached.name,
+        weight: cached.weight ?? 0,
+        sprite: cached.sprite ?? '',
+        types: cached.types ?? [],
+      };
+      void this.client
+        .fetchOne(idOrName)
+        .then((detail) => this.persist(detail))
+        .catch((err) =>
+          this.logger.warn(
+            `Background detail fill-in failed for ${idOrName}: ${(err as Error).message}`,
+          ),
+        );
+      return stub;
     }
 
     const detail = await this.client.fetchOne(idOrName);
@@ -82,7 +109,17 @@ export class PokemonCacheService {
     const missing = index.filter((entry) => !known.has(entry.id));
     if (missing.length === 0) return;
 
-    await this.model.insertMany(missing, { ordered: false });
+    try {
+      await this.model.insertMany(missing, { ordered: false });
+    } catch (err) {
+      if (this.isAllDuplicateKey(err)) {
+        this.logger.log(
+          `Warmup skipped ${this.duplicateCount(err)} duplicate-key inserts.`,
+        );
+        return;
+      }
+      throw err;
+    }
   }
 
   private isFullyPopulated(
@@ -106,5 +143,29 @@ export class PokemonCacheService {
       },
       { upsert: true },
     );
+  }
+
+  private escapeRegex(term: string): string {
+    return term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private isAllDuplicateKey(err: unknown): boolean {
+    const writeErrors = this.extractWriteErrors(err);
+    return writeErrors.length > 0 && writeErrors.every((e) => e.code === 11000);
+  }
+
+  private duplicateCount(err: unknown): number {
+    return this.extractWriteErrors(err).length;
+  }
+
+  private extractWriteErrors(err: unknown): { code: number }[] {
+    if (typeof err !== 'object' || err === null) return [];
+    const candidate = err as {
+      writeErrors?: { code: number }[];
+      code?: number;
+    };
+    if (Array.isArray(candidate.writeErrors)) return candidate.writeErrors;
+    if (candidate.code === 11000) return [{ code: 11000 }];
+    return [];
   }
 }
