@@ -7,6 +7,7 @@ import {
 } from './schemas/pokemon-cache.schema';
 import { PokeApiClient } from './poke-api.client';
 import { PokemonCacheService } from './pokemon-cache.service';
+import { PokemonController } from './pokemon.controller';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PokemonCacheService } from './pokemon-cache.service';
       { name: PokemonCache.name, schema: PokemonCacheSchema },
     ]),
   ],
+  controllers: [PokemonController],
   providers: [PokeApiClient, PokemonCacheService],
   exports: [PokemonCacheService],
 })
