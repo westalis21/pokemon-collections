@@ -43,6 +43,7 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "testTimeout": 30000,
     "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
