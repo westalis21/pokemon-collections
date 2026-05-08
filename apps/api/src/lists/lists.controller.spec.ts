@@ -161,4 +161,67 @@ describe('ListsController (e2e)', () => {
       weight: 69,
     });
   });
+
+  it('imports a v1 file', async () => {
+    const file = JSON.stringify({
+      schemaVersion: 1,
+      name: 'Imported',
+      items: [
+        { pokemonId: 1, name: 'bulbasaur', weight: 100 },
+        { pokemonId: 4, name: 'charmander', weight: 100 },
+        { pokemonId: 7, name: 'squirtle', weight: 100 },
+      ],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/lists/upload')
+      .attach('file', Buffer.from(file), 'team.json')
+      .expect(201);
+
+    expect(response.body.name).toBe('Imported');
+    expect(response.body.items).toHaveLength(3);
+    expect(response.body.items[0].sprite).toBe('b.png');
+  });
+
+  it('rejects a malformed JSON upload with INVALID_FILE_FORMAT', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/lists/upload')
+      .attach('file', Buffer.from('this is not json'), 'team.json')
+      .expect(400);
+
+    expect(response.body.errors[0].code).toBe('INVALID_FILE_FORMAT');
+  });
+
+  it('rejects an unknown schemaVersion with UNSUPPORTED_FILE_VERSION', async () => {
+    const file = JSON.stringify({
+      schemaVersion: 99,
+      name: 'Future',
+      items: [],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/lists/upload')
+      .attach('file', Buffer.from(file), 'future.json')
+      .expect(400);
+
+    expect(response.body.errors[0].code).toBe('UNSUPPORTED_FILE_VERSION');
+  });
+
+  it('rejects a file that fails domain validation', async () => {
+    const file = JSON.stringify({
+      schemaVersion: 1,
+      name: 'Two',
+      items: [
+        { pokemonId: 1, name: 'bulbasaur', weight: 100 },
+        { pokemonId: 4, name: 'charmander', weight: 100 },
+      ],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/lists/upload')
+      .attach('file', Buffer.from(file), 'two.json')
+      .expect(400);
+
+    expect(response.body.errors[0].code).toBe('MIN_SPECIES');
+  });
 });
