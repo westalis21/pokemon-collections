@@ -1,23 +1,13 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import {
-  PokemonCache,
-  PokemonCacheSchema,
-} from './schemas/pokemon-cache.schema';
-import { PokeApiClient } from './poke-api.client';
 import { PokemonCacheService } from './pokemon-cache.service';
 import { PokemonController } from './pokemon.controller';
+import { PokemonCoreModule } from './pokemon-core.module';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: PokemonCache.name, schema: PokemonCacheSchema },
-    ]),
-  ],
+  imports: [PokemonCoreModule],
   controllers: [PokemonController],
-  providers: [PokeApiClient, PokemonCacheService],
-  exports: [PokemonCacheService],
+  exports: [PokemonCoreModule],
 })
 export class PokemonModule implements OnModuleInit {
   private readonly logger = new Logger(PokemonModule.name);
@@ -31,8 +21,9 @@ export class PokemonModule implements OnModuleInit {
     if (this.config.get<string>('WARMUP_DISABLED') === '1') {
       return;
     }
+    const limit = Number(this.config.get<string>('WARMUP_LIMIT') ?? 2000);
     try {
-      await this.cache.warmup(2000);
+      await this.cache.warmup(limit);
     } catch (err) {
       this.logger.warn(`Pokemon cache warmup failed: ${(err as Error).message}`);
     }

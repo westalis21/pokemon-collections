@@ -3,11 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { List, ListSchema } from './schemas/list.schema';
 import { ListsController } from './lists.controller';
 import { ListsService } from './lists.service';
-import { PokemonModule } from '../pokemon/pokemon.module';
+import { PokemonCoreModule } from '../pokemon/pokemon-core.module';
 
 @Module({
   imports: [
-    PokemonModule,
+    PokemonCoreModule,
     MongooseModule.forFeature([{ name: List.name, schema: ListSchema }]),
   ],
   controllers: [ListsController],
