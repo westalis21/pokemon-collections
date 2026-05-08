@@ -39,7 +39,7 @@ describe('HomePage', () => {
       await screen.findByRole('link', { name: /create new list/i }),
     );
     await waitFor(() =>
-      expect(screen.getByText(/new list/i)).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { name: /new list/i })).toBeInTheDocument(),
     );
   });
 
