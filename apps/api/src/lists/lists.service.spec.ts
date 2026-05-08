@@ -7,7 +7,7 @@ import { ValidationException } from '../common/exceptions/validation.exception';
 
 describe('ListsService', () => {
   let service: ListsService;
-  let model: jest.Mock & {
+  let model: {
     create: jest.Mock;
     find: jest.Mock;
     findById: jest.Mock;
@@ -16,12 +16,12 @@ describe('ListsService', () => {
   let cache: { getOneByIdOrName: jest.Mock };
 
   beforeEach(async () => {
-    model = Object.assign(jest.fn(), {
+    model = {
       create: jest.fn(),
       find: jest.fn(),
       findById: jest.fn(),
       findByIdAndDelete: jest.fn(),
-    });
+    };
 
     cache = {
       getOneByIdOrName: jest.fn(),

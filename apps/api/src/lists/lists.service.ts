@@ -67,9 +67,7 @@ export class ListsService {
   }
 
   async findAllSummaries(): Promise<ListSummary[]> {
-    const docs = (await this.model.find().sort({ createdAt: -1 }).lean()) as Array<
-      ListDocument & { _id: { toString(): string } }
-    >;
+    const docs = await this.model.find().sort({ createdAt: -1 }).lean();
     return docs.map((doc) => ({
       id: String(doc._id),
       name: doc.name,

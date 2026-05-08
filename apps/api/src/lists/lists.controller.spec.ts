@@ -138,9 +138,11 @@ describe('ListsController (e2e)', () => {
       .send({ name: 'Delete me', pokemonIds: [1, 4, 7] })
       .expect(201);
 
-    await request(app.getHttpServer())
+    const del = await request(app.getHttpServer())
       .delete(`/api/lists/${created.body._id}`)
       .expect(204);
+    expect(del.body).toEqual({});
+    expect(del.text).toBe('');
 
     await request(app.getHttpServer())
       .get(`/api/lists/${created.body._id}`)

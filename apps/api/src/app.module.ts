@@ -13,8 +13,10 @@ import { ListsModule } from './lists/lists.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri:
-          config.get<string>('MONGO_URI') ??
-          'mongodb://localhost:27017/pokemon',
+          process.env.NODE_ENV === 'production'
+            ? config.getOrThrow<string>('MONGO_URI')
+            : (config.get<string>('MONGO_URI') ??
+              'mongodb://localhost:27017/pokemon'),
       }),
     }),
     CommonModule,
