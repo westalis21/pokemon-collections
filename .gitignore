@@ -4,8 +4,6 @@ build/
 coverage/
 *.tsbuildinfo
 
-.env
-.env.local
 
 .idea/
 .vscode/
@@ -14,3 +12,4 @@ coverage/
 
 *.log
 npm-debug.log*
+config.bat

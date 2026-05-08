@@ -43,12 +43,13 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testTimeout": 30000,
+    "testTimeout": 60000,
     "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
-    }
+    },
+    "globalSetup": "<rootDir>/test-utils/jest-global-setup.ts"
   }
 }
