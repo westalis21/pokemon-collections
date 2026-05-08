@@ -97,3 +97,17 @@ Environment variables:
 - `MONGO_URI` — Mongo connection string. Required in production (boot fails fast if missing); falls back to `mongodb://localhost:27017/pokemon` otherwise.
 - `WARMUP_DISABLED=1` — skip the boot-time PokéAPI warmup (used by tests).
 - `WARMUP_LIMIT` — number of index entries fetched during warmup. Defaults to `2000`.
+
+## Web app
+
+The SPA is at <http://localhost:5173> when the dev stack is up.
+
+Routes:
+
+| Path             | Purpose                                                  |
+|------------------|----------------------------------------------------------|
+| `/`              | All saved lists; create new list; upload from file.      |
+| `/lists/new`     | Browse the catalog (search + paginate), pick pokemon, save. |
+| `/lists/:id`     | View a saved list, download it, or delete it.            |
+
+The web app never calls PokéAPI directly — every request goes through `/api`, which Vite proxies to the NestJS service in dev and nginx reverse-proxies in production.
