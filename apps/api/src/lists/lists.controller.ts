@@ -17,6 +17,7 @@ import { ListFileCodec } from '@pokemon/shared';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { FormatException } from '../common/exceptions/format.exception';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 
 @Controller('lists')
 export class ListsController {
@@ -49,7 +50,10 @@ export class ListsController {
   }
 
   @Get(':id/download')
-  async download(@Param('id') id: string, @Res() res: Response): Promise<void> {
+  async download(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const { filename, payload } = await this.service.toFile(id);
     res
       .status(200)
@@ -59,13 +63,13 @@ export class ListsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseObjectIdPipe) id: string) {
     return this.service.findOne(id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseObjectIdPipe) id: string) {
     return this.service.remove(id);
   }
 }

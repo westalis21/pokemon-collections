@@ -4,21 +4,36 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import type { ApiErrorPayload } from '../exceptions/validation.exception';
 
-@Catch(HttpException)
+@Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: HttpException, host: ArgumentsHost): void {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const status = exception.getStatus();
-    const payload = exception.getResponse();
 
-    response
-      .status(status)
-      .json({ statusCode: status, errors: this.toErrors(status, payload) });
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const payload = exception.getResponse();
+      response
+        .status(status)
+        .json({ statusCode: status, errors: this.toErrors(status, payload) });
+      return;
+    }
+
+    this.logger.error(
+      'Unhandled exception',
+      exception instanceof Error ? exception.stack : String(exception),
+    );
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      errors: [{ code: 'INTERNAL_ERROR', message: 'Unexpected error.' }],
+    });
   }
 
   private toErrors(status: number, payload: unknown): ApiErrorPayload[] {

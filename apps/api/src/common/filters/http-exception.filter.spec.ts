@@ -88,4 +88,21 @@ describe('HttpExceptionFilter', () => {
       errors: [{ code: 'INTERNAL_ERROR', message: 'boom' }],
     });
   });
+
+  it('wraps a non-HttpException error into a generic envelope without leaking details', () => {
+    const { host, status, json } = buildHost();
+    const loggerSpy = jest
+      .spyOn(filter['logger'], 'error')
+      .mockImplementation(() => undefined);
+
+    filter.catch(new Error('database exploded with secret password 12345'), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      errors: [{ code: 'INTERNAL_ERROR', message: 'Unexpected error.' }],
+    });
+    expect(loggerSpy).toHaveBeenCalled();
+    loggerSpy.mockRestore();
+  });
 });

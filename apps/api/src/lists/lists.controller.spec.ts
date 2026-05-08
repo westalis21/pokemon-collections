@@ -121,6 +121,17 @@ describe('ListsController (e2e)', () => {
       .expect(404);
   });
 
+  it('rejects a malformed id with INVALID_ID', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/lists/not-an-objectid')
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      statusCode: 400,
+      errors: [{ code: 'INVALID_ID', message: 'Invalid id.' }],
+    });
+  });
+
   it('deletes a list', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/lists')
