@@ -66,3 +66,23 @@ docker-compose.yml   mongo + dev api + dev web
 - **Strict TypeScript, ESLint flat config, Prettier, and a per-workspace `tsconfig` extending one root `tsconfig.base.json`.** Compiler invariants (`strict`, `target`, etc.) live in one place; each workspace overrides only what it must (`module`, `jsx`, `composite`).
 
 The full feature set (Pokemon catalog, list CRUD, file import/export) is delivered in subsequent plans. This commit marks the foundation: working dev stack, shared validation library with full unit-test coverage, and per-workspace toolchain wiring.
+
+## API reference
+
+All routes are mounted under `/api`. Errors share the envelope `{ statusCode, errors: [{ code, message }] }`.
+
+| Method | Path                            | Description                                                |
+|-------:|---------------------------------|------------------------------------------------------------|
+| GET    | `/api/health`                   | Liveness probe — `{ "status": "ok" }`                      |
+| GET    | `/api/pokemon`                  | Paginated catalog (`?page=&limit=&search=`).               |
+| GET    | `/api/pokemon/:idOrName`        | Single Pokémon — fills the cache from PokéAPI on miss.     |
+| GET    | `/api/lists`                    | All saved lists (id, name, itemCount, totalWeight).        |
+| POST   | `/api/lists`                    | Create from `{ name, pokemonIds[] }` — server validates.   |
+| GET    | `/api/lists/:id`                | Full list detail.                                          |
+| DELETE | `/api/lists/:id`                | Delete a list (204).                                       |
+| GET    | `/api/lists/:id/download`       | Stream list as a v1 JSON attachment.                       |
+| POST   | `/api/lists/upload`             | Multipart upload of a v1 JSON file → validate and persist. |
+
+Validation codes: `MIN_SPECIES`, `WEIGHT_EXCEEDED`, `INVALID_FILE_FORMAT`, `UNSUPPORTED_FILE_VERSION`, `VALIDATION_ERROR` (DTO-level), `INTERNAL_ERROR`.
+
+The Pokémon catalog warms up against PokéAPI on first boot. To skip warmup (for tests), set `WARMUP_DISABLED=1`.
