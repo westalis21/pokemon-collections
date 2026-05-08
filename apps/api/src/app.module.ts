@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
+import { PokemonModule } from './pokemon/pokemon.module';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { HealthModule } from './health/health.module';
     }),
     CommonModule,
     HealthModule,
-    // PokemonModule and ListsModule are wired in their own tasks below.
+    PokemonModule,
   ],
 })
 export class AppModule {}
