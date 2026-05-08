@@ -64,7 +64,7 @@ describe('HttpExceptionFilter', () => {
   });
 
   it('falls back to a single VALIDATION_ERROR for a plain string message', () => {
-    const { host, status, json } = buildHost();
+    const { host, json } = buildHost();
 
     filter.catch(new BadRequestException('id must be a number'), host);
 
