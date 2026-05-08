@@ -1,16 +1,10 @@
+import type { PokemonSnapshot } from '@pokemon/shared';
 import { WeightMeter } from './WeightMeter';
 import { formatWeight } from '../lib/format';
 
-export interface SelectedPanelItem {
-  pokemonId: number;
-  name: string;
-  weight: number;
-  sprite: string;
-}
-
 export interface SelectedPanelProps {
   name: string;
-  items: SelectedPanelItem[];
+  items: PokemonSnapshot[];
   canSave: boolean;
   saving: boolean;
   onNameChange: (name: string) => void;

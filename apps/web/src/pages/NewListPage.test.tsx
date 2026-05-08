@@ -89,7 +89,7 @@ describe('NewListPage', () => {
     expect(screen.getByRole('button', { name: /toggle pikachu/i })).toBeInTheDocument();
   });
 
-  it('pre-populates the selection when uploading a v1 file', async () => {
+  it('shows an import preview and applies it to the selection on Apply', async () => {
     renderWithProviders(<></>, { routes, initialEntries: ['/lists/new'] });
     await screen.findByRole('button', { name: /toggle bulbasaur/i });
 
@@ -107,13 +107,49 @@ describe('NewListPage', () => {
       'imported.json',
       { type: 'application/json' },
     );
-    const fileInput = screen.getByLabelText(/import draft/i);
-    await userEvent.upload(fileInput, file);
+    await userEvent.upload(screen.getByLabelText(/import draft/i), file);
 
+    const preview = await screen.findByRole('region', { name: /import preview/i });
+    expect(within(preview).getByText(/imported/i)).toBeInTheDocument();
+    expect(within(preview).getByText('bulbasaur')).toBeInTheDocument();
+    expect(within(preview).getByText('charmander')).toBeInTheDocument();
+    expect(screen.getByLabelText(/list name/i)).toHaveValue('');
+
+    await userEvent.click(within(preview).getByRole('button', { name: /apply/i }));
+
+    expect(
+      screen.queryByRole('region', { name: /import preview/i }),
+    ).not.toBeInTheDocument();
     const panel = screen.getByLabelText(/list name/i).closest('aside') as HTMLElement;
     expect(within(panel).getByText('bulbasaur')).toBeInTheDocument();
     expect(within(panel).getByText('charmander')).toBeInTheDocument();
     expect(screen.getByLabelText(/list name/i)).toHaveValue('Imported');
+  });
+
+  it('discards the imported file when the user cancels the preview', async () => {
+    renderWithProviders(<></>, { routes, initialEntries: ['/lists/new'] });
+    await screen.findByRole('button', { name: /toggle bulbasaur/i });
+
+    const file = new File(
+      [
+        JSON.stringify({
+          schemaVersion: 1,
+          name: 'Imported',
+          items: [{ pokemonId: 1, name: 'bulbasaur', weight: 69 }],
+        }),
+      ],
+      'imported.json',
+      { type: 'application/json' },
+    );
+    await userEvent.upload(screen.getByLabelText(/import draft/i), file);
+
+    const preview = await screen.findByRole('region', { name: /import preview/i });
+    await userEvent.click(within(preview).getByRole('button', { name: /cancel/i }));
+
+    expect(
+      screen.queryByRole('region', { name: /import preview/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/list name/i)).toHaveValue('');
   });
 
   it('rejects an unsupported file with a banner and no state change', async () => {

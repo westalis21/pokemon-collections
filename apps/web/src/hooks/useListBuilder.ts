@@ -1,21 +1,19 @@
 import { useCallback, useMemo, useReducer } from 'react';
-import { ListValidator, type ListValidationResult } from '@pokemon/shared';
+import {
+  ListValidator,
+  type ListValidationResult,
+  type PokemonSnapshot,
+} from '@pokemon/shared';
 import type { CatalogItem } from '../api/types';
-
-export interface BuilderItem {
-  pokemonId: number;
-  name: string;
-  weight: number;
-  sprite: string;
-}
 
 interface State {
   name: string;
-  items: BuilderItem[];
+  items: PokemonSnapshot[];
 }
 
 type Action =
   | { type: 'toggle'; pokemon: CatalogItem }
+  | { type: 'remove'; pokemonId: number }
   | { type: 'setName'; name: string }
   | {
       type: 'setFromFile';
@@ -50,6 +48,11 @@ function reducer(state: State, action: Action): State {
         ],
       };
     }
+    case 'remove':
+      return {
+        ...state,
+        items: state.items.filter((i) => i.pokemonId !== action.pokemonId),
+      };
     case 'setName':
       return { ...state, name: action.name };
     case 'setFromFile':
@@ -69,12 +72,13 @@ function reducer(state: State, action: Action): State {
 
 export interface UseListBuilder {
   name: string;
-  items: BuilderItem[];
+  items: PokemonSnapshot[];
   totalWeight: number;
   uniqueSpecies: number;
   validation: ListValidationResult;
   isSelected: (pokemonId: number) => boolean;
   toggle: (pokemon: CatalogItem) => void;
+  remove: (pokemonId: number) => void;
   setName: (name: string) => void;
   setFromFile: (payload: {
     name: string;
@@ -103,6 +107,10 @@ export function useListBuilder(): UseListBuilder {
     (pokemon: CatalogItem) => dispatch({ type: 'toggle', pokemon }),
     [],
   );
+  const remove = useCallback(
+    (pokemonId: number) => dispatch({ type: 'remove', pokemonId }),
+    [],
+  );
   const setName = useCallback(
     (name: string) => dispatch({ type: 'setName', name }),
     [],
@@ -125,6 +133,7 @@ export function useListBuilder(): UseListBuilder {
     validation,
     isSelected,
     toggle,
+    remove,
     setName,
     setFromFile,
     clear,

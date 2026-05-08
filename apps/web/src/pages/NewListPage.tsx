@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ListFileCodec } from '@pokemon/shared';
+import { ListFileCodec, type ListFileV1 } from '@pokemon/shared';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { FileUploader } from '../components/FileUploader';
 import { Pagination } from '../components/Pagination';
@@ -8,6 +8,7 @@ import { PokemonCard } from '../components/PokemonCard';
 import { SelectedPanel } from '../components/SelectedPanel';
 import { SkeletonGrid } from '../components/SkeletonGrid';
 import { ApiError } from '../lib/api-error';
+import { pluralize } from '../lib/format';
 import { useCreateList } from '../hooks/useCreateList';
 import { useListBuilder } from '../hooks/useListBuilder';
 import { usePokemonCatalog } from '../hooks/usePokemonCatalog';
@@ -19,6 +20,7 @@ export function NewListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [fileError, setFileError] = useState<Error | null>(null);
+  const [pendingImport, setPendingImport] = useState<ListFileV1 | null>(null);
   const navigate = useNavigate();
   const create = useCreateList();
 
@@ -57,8 +59,19 @@ export function NewListPage() {
       setFileError(new ApiError(400, [decoded.error]));
       return;
     }
-    builder.setFromFile({ name: decoded.value.name, items: decoded.value.items });
+    setPendingImport(decoded.value);
   };
+
+  const applyImport = () => {
+    if (!pendingImport) return;
+    builder.setFromFile({
+      name: pendingImport.name,
+      items: pendingImport.items,
+    });
+    setPendingImport(null);
+  };
+
+  const cancelImport = () => setPendingImport(null);
 
   const canSave =
     builder.validation.ok && builder.name.trim().length > 0 && !create.isPending;
@@ -70,6 +83,52 @@ export function NewListPage() {
           <h1 className="text-2xl font-bold">New list</h1>
           <FileUploader label="Import draft" onFile={handleImport} />
         </header>
+
+        {pendingImport ? (
+          <section
+            aria-label="Import preview"
+            className="flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-amber-900">
+                  Import preview: {pendingImport.name}
+                </h2>
+                <p className="text-sm text-amber-800">
+                  About to replace your current selection with{' '}
+                  {pluralize(pendingImport.items.length, 'pokemon', 'pokemon')}{' '}
+                  from this file.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={cancelImport}
+                  className="rounded border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={applyImport}
+                  className="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+            <ul className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-4">
+              {pendingImport.items.map((item) => (
+                <li
+                  key={item.pokemonId}
+                  className="rounded border border-amber-200 bg-white px-2 py-1 capitalize"
+                >
+                  {item.name}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Search pokemon</span>
@@ -114,17 +173,7 @@ export function NewListPage() {
           canSave={canSave}
           saving={create.isPending}
           onNameChange={builder.setName}
-          onRemove={(pokemonId) => {
-            const item = builder.items.find((i) => i.pokemonId === pokemonId);
-            if (!item) return;
-            builder.toggle({
-              id: item.pokemonId,
-              name: item.name,
-              weight: item.weight,
-              sprite: item.sprite,
-              types: [],
-            });
-          }}
+          onRemove={builder.remove}
           onSave={handleSave}
         />
       </div>

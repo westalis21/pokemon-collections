@@ -12,6 +12,16 @@ describe('useListBuilder', () => {
     expect(result.current.validation.ok).toBe(false);
   });
 
+  it('removes an item by pokemonId', () => {
+    const { result } = renderHook(() => useListBuilder());
+    act(() => {
+      result.current.toggle(bulbasaur);
+      result.current.toggle(charmander);
+    });
+    act(() => result.current.remove(1));
+    expect(result.current.items.map((i) => i.pokemonId)).toEqual([4]);
+  });
+
   it('toggles items in and out of the selection', () => {
     const { result } = renderHook(() => useListBuilder());
     act(() => result.current.toggle(bulbasaur));
