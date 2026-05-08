@@ -48,8 +48,65 @@ describe('PokemonCacheService', () => {
   });
 
   describe('search', () => {
-    it('paginates against the cache without a search term', async () => {
-      const docs = [{ id: 1, name: 'bulbasaur' }];
+    it('paginates against the cache and hydrates stubs on demand', async () => {
+      const stubs = [{ id: 1, name: 'bulbasaur' }];
+      const detail = {
+        id: 1,
+        name: 'bulbasaur',
+        weight: 69,
+        sprite: 'b.png',
+        types: ['grass'],
+      };
+      model.find.mockReturnValue({
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue(stubs),
+      });
+      model.countDocuments.mockResolvedValue(1);
+      client.fetchOne.mockResolvedValueOnce(detail);
+
+      const result = await service.search({ page: 1, limit: 20 });
+
+      expect(model.find).toHaveBeenCalledWith({});
+      expect(client.fetchOne).toHaveBeenCalledWith(1);
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { id: 1 },
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            weight: 69,
+            sprite: 'b.png',
+            types: ['grass'],
+          }),
+        }),
+        { upsert: true },
+      );
+      expect(result).toEqual({
+        items: [
+          {
+            id: 1,
+            name: 'bulbasaur',
+            weight: 69,
+            sprite: 'b.png',
+            types: ['grass'],
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    it('returns fully populated cache entries without re-fetching', async () => {
+      const docs = [
+        {
+          id: 1,
+          name: 'bulbasaur',
+          weight: 69,
+          sprite: 'b.png',
+          types: ['grass'],
+        },
+      ];
       model.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
@@ -60,13 +117,25 @@ describe('PokemonCacheService', () => {
 
       const result = await service.search({ page: 1, limit: 20 });
 
-      expect(model.find).toHaveBeenCalledWith({});
-      expect(result).toEqual({
-        items: docs,
-        total: 1,
-        page: 1,
-        limit: 20,
+      expect(client.fetchOne).not.toHaveBeenCalled();
+      expect(result.items).toEqual(docs);
+    });
+
+    it('keeps the stub when hydration fails', async () => {
+      const stubs = [{ id: 1, name: 'bulbasaur' }];
+      model.find.mockReturnValue({
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue(stubs),
       });
+      model.countDocuments.mockResolvedValue(1);
+      client.fetchOne.mockRejectedValueOnce(new Error('upstream down'));
+
+      const result = await service.search({ page: 1, limit: 20 });
+
+      expect(result.items).toEqual(stubs);
+      expect(model.updateOne).not.toHaveBeenCalled();
     });
 
     it('filters by name substring when search is provided', async () => {

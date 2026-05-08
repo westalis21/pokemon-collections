@@ -48,7 +48,30 @@ export class PokemonCacheService {
       this.model.countDocuments(filter),
     ]);
 
-    return { items: items as PokemonCache[], total, page: input.page, limit: input.limit };
+    const hydrated = await Promise.all(
+      (items as PokemonCache[]).map((item) => this.hydrateStub(item)),
+    );
+
+    return { items: hydrated, total, page: input.page, limit: input.limit };
+  }
+
+  private async hydrateStub(item: PokemonCache): Promise<PokemonCache> {
+    if (this.isFullyPopulated(item)) return item;
+    try {
+      const detail = await this.client.fetchOne(item.id);
+      await this.persist(detail);
+      return {
+        ...item,
+        weight: detail.weight,
+        sprite: detail.sprite,
+        types: detail.types,
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Failed to hydrate pokemon ${item.id} (${item.name}): ${(err as Error).message}`,
+      );
+      return item;
+    }
   }
 
   async getOneByIdOrName(idOrName: number | string): Promise<PokeDetail> {
