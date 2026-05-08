@@ -70,13 +70,16 @@ describe('ListsService', () => {
     });
 
     it('throws ValidationException listing every failing rule', async () => {
-      cache.getOneByIdOrName.mockResolvedValueOnce({
+      const pikachuSnapshot = {
         id: 25,
         name: 'pikachu',
         weight: 2000,
         sprite: 'p.png',
         types: [],
-      });
+      };
+      cache.getOneByIdOrName
+        .mockResolvedValueOnce(pikachuSnapshot)
+        .mockResolvedValueOnce(pikachuSnapshot);
 
       await expect(
         service.create({ name: 'X', pokemonIds: [25] }),
