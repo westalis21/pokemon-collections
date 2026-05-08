@@ -17,7 +17,15 @@ type Action =
   | { type: 'setName'; name: string }
   | {
       type: 'setFromFile';
-      payload: { name: string; items: { pokemonId: number; name: string; weight: number }[] };
+      payload: {
+        name: string;
+        items: {
+          pokemonId: number;
+          name: string;
+          weight: number;
+          sprite?: string;
+        }[];
+      };
     }
   | { type: 'clear' };
 
@@ -62,7 +70,7 @@ function reducer(state: State, action: Action): State {
           pokemonId: i.pokemonId,
           name: i.name,
           weight: i.weight,
-          sprite: '',
+          sprite: i.sprite ?? '',
         })),
       };
     case 'clear':
@@ -82,7 +90,12 @@ export interface UseListBuilder {
   setName: (name: string) => void;
   setFromFile: (payload: {
     name: string;
-    items: { pokemonId: number; name: string; weight: number }[];
+    items: {
+      pokemonId: number;
+      name: string;
+      weight: number;
+      sprite?: string;
+    }[];
   }) => void;
   clear: () => void;
 }

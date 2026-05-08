@@ -9,6 +9,7 @@ import { SelectedPanel } from '../components/SelectedPanel';
 import { SkeletonGrid } from '../components/SkeletonGrid';
 import { ApiError } from '../lib/api-error';
 import { pluralize } from '../lib/format';
+import { getPokemon } from '../api/pokemon';
 import { useCreateList } from '../hooks/useCreateList';
 import { useListBuilder } from '../hooks/useListBuilder';
 import { usePokemonCatalog } from '../hooks/usePokemonCatalog';
@@ -62,11 +63,21 @@ export function NewListPage() {
     setPendingImport(decoded.value);
   };
 
-  const applyImport = () => {
+  const applyImport = async () => {
     if (!pendingImport) return;
+    const sprites = await Promise.all(
+      pendingImport.items.map((item) =>
+        getPokemon(item.pokemonId)
+          .then((p) => p.sprite)
+          .catch(() => ''),
+      ),
+    );
     builder.setFromFile({
       name: pendingImport.name,
-      items: pendingImport.items,
+      items: pendingImport.items.map((item, i) => ({
+        ...item,
+        sprite: sprites[i],
+      })),
     });
     setPendingImport(null);
   };
