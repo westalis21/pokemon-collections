@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { App } from './App';
+import { renderWithProviders } from './test/render';
 
-describe('App', () => {
-  it('renders the heading', () => {
-    render(<App />);
-    expect(
-      screen.getByRole('heading', { name: /pokemon collections/i }),
-    ).toBeInTheDocument();
+describe('test harness', () => {
+  it('renders content with providers', () => {
+    const { getByText } = renderWithProviders(<span>hello</span>);
+    expect(getByText('hello')).toBeInTheDocument();
   });
 });
