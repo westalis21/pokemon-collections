@@ -135,4 +135,30 @@ describe('ListsController (e2e)', () => {
       .get(`/api/lists/${created.body._id}`)
       .expect(404);
   });
+
+  it('streams a v1 file for download with the correct headers', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/lists')
+      .send({ name: 'Downloadable', pokemonIds: [1, 4, 7] })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/lists/${created.body._id}/download`)
+      .expect(200);
+
+    expect(response.headers['content-type']).toMatch(/application\/json/);
+    expect(response.headers['content-disposition']).toMatch(
+      /attachment; filename="downloadable\.json"/,
+    );
+
+    const body = JSON.parse(response.text);
+    expect(body.schemaVersion).toBe(1);
+    expect(body.name).toBe('Downloadable');
+    expect(body.items).toHaveLength(3);
+    expect(body.items[0]).toEqual({
+      pokemonId: 1,
+      name: 'bulbasaur',
+      weight: 69,
+    });
+  });
 });

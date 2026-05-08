@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ListValidator, type ListFileV1 } from '@pokemon/shared';
+import { ListFileCodec, ListValidator, type ListFileV1 } from '@pokemon/shared';
 import { List, ListDocument } from './schemas/list.schema';
 import { CreateListDto } from './dto/create-list.dto';
 import { PokemonCacheService } from '../pokemon/pokemon-cache.service';
@@ -83,6 +83,20 @@ export class ListsService {
     const doc = await this.model.findById(id).lean();
     if (!doc) throw new NotFoundException(`List ${id} not found.`);
     return doc as ListDocument;
+  }
+
+  async toFile(id: string): Promise<{ filename: string; payload: string }> {
+    const doc = await this.findOne(id);
+    const payload = ListFileCodec.encode({
+      name: doc.name,
+      items: doc.items.map((item) => ({
+        pokemonId: item.pokemonId,
+        name: item.name,
+        weight: item.weight,
+      })),
+    });
+    const safe = doc.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() || 'list';
+    return { filename: `${safe}.json`, payload };
   }
 
   async remove(id: string): Promise<void> {
