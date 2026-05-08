@@ -73,7 +73,7 @@ All routes are mounted under `/api`. Errors share the envelope `{ statusCode, er
 
 | Method | Path                            | Description                                                |
 |-------:|---------------------------------|------------------------------------------------------------|
-| GET    | `/api/health`                   | Liveness probe — `{ "status": "ok" }`                      |
+| GET    | `/api/health`                   | Liveness probe — `{ "status": "ok" }` when Mongo is up.    |
 | GET    | `/api/pokemon`                  | Paginated catalog (`?page=&limit=&search=`).               |
 | GET    | `/api/pokemon/:idOrName`        | Single Pokémon — fills the cache from PokéAPI on miss.     |
 | GET    | `/api/lists`                    | All saved lists (id, name, itemCount, totalWeight).        |
@@ -83,6 +83,17 @@ All routes are mounted under `/api`. Errors share the envelope `{ statusCode, er
 | GET    | `/api/lists/:id/download`       | Stream list as a v1 JSON attachment.                       |
 | POST   | `/api/lists/upload`             | Multipart upload of a v1 JSON file → validate and persist. |
 
-Validation codes: `MIN_SPECIES`, `WEIGHT_EXCEEDED`, `INVALID_FILE_FORMAT`, `UNSUPPORTED_FILE_VERSION`, `VALIDATION_ERROR` (DTO-level), `INTERNAL_ERROR`.
+Pagination & limits:
 
-The Pokémon catalog warms up against PokéAPI on first boot. To skip warmup (for tests), set `WARMUP_DISABLED=1`.
+- `GET /api/pokemon` defaults: `page=1`, `limit=20`. `limit` is capped at 100.
+- `GET /api/lists` is currently unpaginated and returns every saved list summary; pagination will land in a later plan.
+- `POST /api/lists/upload` accepts files up to **256 KB**; oversized uploads are rejected with `INVALID_FILE_FORMAT`.
+- `GET /api/lists/:id/download` filename is derived from the list name: lowercased, non-`[a-z0-9_-]` runs collapsed to `-`, trimmed, and capped at 40 characters.
+
+Validation codes: `MIN_SPECIES`, `WEIGHT_EXCEEDED`, `INVALID_FILE_FORMAT`, `UNSUPPORTED_FILE_VERSION`, `INVALID_ID`, `VALIDATION_ERROR` (DTO-level), `INTERNAL_ERROR`.
+
+Environment variables:
+
+- `MONGO_URI` — Mongo connection string. Required in production (boot fails fast if missing); falls back to `mongodb://localhost:27017/pokemon` otherwise.
+- `WARMUP_DISABLED=1` — skip the boot-time PokéAPI warmup (used by tests).
+- `WARMUP_LIMIT` — number of index entries fetched during warmup. Defaults to `2000`.
