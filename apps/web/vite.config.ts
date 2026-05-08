@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: './src/test/vitest-environment-jsdom-with-native-formdata.ts',
     globals: true,
     css: false,
     setupFiles: ['./src/test/setup.ts'],
