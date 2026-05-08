@@ -3,10 +3,10 @@ import { HydratedDocument } from 'mongoose';
 
 @Schema({ collection: 'pokemon_cache' })
 export class PokemonCache {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   id!: number;
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   name!: string;
 
   @Prop()
@@ -24,4 +24,3 @@ export class PokemonCache {
 
 export type PokemonCacheDocument = HydratedDocument<PokemonCache>;
 export const PokemonCacheSchema = SchemaFactory.createForClass(PokemonCache);
-PokemonCacheSchema.index({ name: 'text' });
